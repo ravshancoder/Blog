@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"database/sql"
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
@@ -118,4 +119,49 @@ func (pr *commentRepo) GetAll(params *repo.GetAllCommentsParams) (*repo.GetAllCo
 	}
 
 	return &result, nil
+}
+
+func (ur *commentRepo) Update(comment *repo.Comment) (*repo.Comment, error) {
+	query := `
+		UPDATE comments SET
+			description=$1
+		WHERE id=$2
+		RETURNING created_at
+	`
+
+	row := ur.db.QueryRow(
+		query,
+		comment.Description,
+		comment.ID,
+	)
+
+	var result repo.Comment
+	err := row.Scan(
+		&result.CreatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return comment, nil
+}
+
+func (cr *commentRepo) Delete(id int64) error {
+	query := `DELETE FROM comments WHERE id=$1`
+
+	result, err := cr.db.Exec(query, id)
+	if err != nil {
+		return err
+	}
+
+	rowsEffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsEffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
 }

@@ -43,17 +43,25 @@ func New(opt *RouterOptions) *gin.Engine {
 	apiV1.GET("/users/:id", handlerV1.AuthMiddleware, handlerV1.GetUser)
 	apiV1.POST("/users", handlerV1.AuthMiddleware, handlerV1.CreateUser)
 	apiV1.GET("/users", handlerV1.GetAllUsers)
+	apiV1.PUT("/users/:id", handlerV1.UpdateUser)
+	apiV1.DELETE("/users/:id", handlerV1.DeleteUser)
 
 	apiV1.GET("/categories/:id", handlerV1.GetCategory)
 	apiV1.POST("/categories", handlerV1.AuthMiddleware, handlerV1.CreateCategory)
 	apiV1.GET("/categories", handlerV1.GetAllCategories)
+	apiV1.PUT("/categories/:id", handlerV1.UpdateCategory)
+	apiV1.DELETE("/categories/:id", handlerV1.DeleteCategory)
 
 	apiV1.GET("/posts/:id", handlerV1.GetPost)
 	apiV1.POST("/posts", handlerV1.AuthMiddleware, handlerV1.CreatePost)
 	apiV1.GET("/posts", handlerV1.GetAllPosts)
+	apiV1.PUT("/posts/:id", handlerV1.UpdatePost)
+	apiV1.DELETE("/posts/:id", handlerV1.DeletePost)
 
 	apiV1.POST("/comments", handlerV1.AuthMiddleware, handlerV1.CreateComment)
 	apiV1.GET("/comments", handlerV1.GetAllComments)
+	apiV1.PUT("/comments/:id", handlerV1.UpdateComment)
+	apiV1.DELETE("/comments/:id", handlerV1.DeleteComment)
 
 	apiV1.POST("/likes", handlerV1.AuthMiddleware, handlerV1.CreateLike)
 	apiV1.GET("/likes/user-post", handlerV1.AuthMiddleware, handlerV1.GetLike)

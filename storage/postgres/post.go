@@ -1,10 +1,11 @@
 package postgres
 
 import (
+	"database/sql"
 	"fmt"
 
-	"github.com/ravshancoder/blog/storage/repo"
 	"github.com/jmoiron/sqlx"
+	"github.com/ravshancoder/blog/storage/repo"
 )
 
 type postRepo struct {
@@ -162,4 +163,53 @@ func (pr *postRepo) GetAll(params *repo.GetAllPostsParams) (*repo.GetAllPostsRes
 	}
 
 	return &result, nil
+}
+
+func (ur *postRepo) Update(post *repo.Post) (*repo.Post, error) {
+	query := `
+		UPDATE posts SET
+			title=$1,
+			description=$2,
+			image_url=$3
+		WHERE id=$4
+		RETURNING created_at
+	`
+
+	row := ur.db.QueryRow(
+		query,
+		post.Title,
+		post.Description,
+		post.ImageUrl,
+		post.ID,
+	)
+
+	var result repo.Comment
+	err := row.Scan(
+		&result.CreatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return post, nil
+}
+
+func (cr *postRepo) Delete(id int64) error {
+	query := `DELETE FROM posts WHERE id=$1`
+
+	result, err := cr.db.Exec(query, id)
+	if err != nil {
+		return err
+	}
+
+	rowsEffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsEffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
 }

@@ -1,10 +1,11 @@
 package postgres
 
 import (
+	"database/sql"
 	"fmt"
 
-	"github.com/ravshancoder/blog/storage/repo"
 	"github.com/jmoiron/sqlx"
+	"github.com/ravshancoder/blog/storage/repo"
 )
 
 type userRepo struct {
@@ -221,6 +222,66 @@ func (ur *userRepo) UpdatePassword(req *repo.UpdatePassword) error {
 	_, err := ur.db.Exec(query, req.Password, req.UserID)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (ur *userRepo) Update(user *repo.User) (*repo.User, error) {
+	query := `
+		UPDATE users SET
+			first_name=$1
+			last_name=$2
+			phone_number=$3
+			email=$4
+			gender=$5
+			password=$6
+			username=$7
+			profile_image_url=$8
+			type=$9
+		WHERE id=$10
+		RETURNING created_at
+	`
+
+	row := ur.db.QueryRow(
+		query,
+		user.FirstName,
+		user.LastName,
+		user.PhoneNumber,
+		user.Email,
+		user.Gender,
+		user.Password,
+		user.Username,
+		user.ProfileImageUrl,
+		user.Type,
+	)
+
+	var result repo.Comment
+	err := row.Scan(
+		&result.CreatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (cr *userRepo) Delete(id int64) error {
+	query := `DELETE FROM users WHERE id=$1`
+
+	result, err := cr.db.Exec(query, id)
+	if err != nil {
+		return err
+	}
+
+	rowsEffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsEffected == 0 {
+		return sql.ErrNoRows
 	}
 
 	return nil

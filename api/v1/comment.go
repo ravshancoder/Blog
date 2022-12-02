@@ -1,6 +1,8 @@
 package v1
 
 import (
+	"database/sql"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -23,7 +25,7 @@ func (h *handlerV1) CreateComment(c *gin.Context) {
 	var (
 		req models.CreateCommentRequest
 	)
-
+	
 	err := c.ShouldBindJSON(&req)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, errorResponse(err))
@@ -35,7 +37,7 @@ func (h *handlerV1) CreateComment(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
-
+	
 	resp, err := h.storage.Comment().Create(&repo.Comment{
 		Description: req.Description,
 		PostID:      req.PostID,
@@ -79,6 +81,77 @@ func (h *handlerV1) GetAllComments(c *gin.Context) {
 
 	c.JSON(http.StatusOK, getCommentsResponse(result))
 }
+
+// @Router /comments/{id} [put]
+// @Summary Update a comment
+// @Description Update a comment
+// @Tags comment
+// @Accept json
+// @Produce json
+// @Param id path int true "ID"
+// @Param comment body models.CreateCommentRequest true "Comment"
+// @Success 200 {object} models.Comment
+// @Failure 500 {object} models.ErrorResponse
+func (h *handlerV1) UpdateComment(c *gin.Context) {
+	var req repo.Comment
+
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+	
+	req.ID = int64(id)
+	
+	updated, err := h.storage.Comment().Update(&req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	
+	c.JSON(http.StatusCreated, parseCommentModel(updated))
+}
+
+// @Security ApiKeyAuth
+// @Router /comments/{id} [delete]
+// @Summary Delete a comment
+// @Description Delete a comment
+// @Tags comment
+// @Accept json
+// @Produce json
+// @Param id path int true "ID"
+// @Success 200 {object} models.ResponseOK
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
+func (h *handlerV1) DeleteComment(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	err = h.storage.Comment().Delete(int64(id))
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			c.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	
+	c.JSON(http.StatusOK, models.ResponseOK{
+		Message: "Successfully deleted",
+	})
+}
+
+
 
 func validateGetAllCommentsParams(c *gin.Context) (*models.GetAllCommentsParams, error) {
 	var (
