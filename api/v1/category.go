@@ -1,6 +1,8 @@
 package v1
 
 import (
+	"database/sql"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -116,4 +118,81 @@ func getCategoriesResponse(data *repo.GetAllCategoriesResult) *models.GetAllCate
 	}
 
 	return &response
+}
+
+// @Router /categorys/{id} [put]
+// @Summary Update a category
+// @Description Update a category
+// @Tags category
+// @Accept json
+// @Produce json
+// @Param id path int true "ID"
+// @Param category body models.CreateCategoryRequest true "Category"
+// @Success 200 {object} models.Category
+// @Failure 500 {object} models.ErrorResponse
+func (h *handlerV1) UpdateCategory(c *gin.Context) {
+	var req repo.Category
+
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	req.ID = int64(id)
+
+	updated, err := h.storage.Category().Update(&req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	c.JSON(http.StatusCreated, parseCategoryModel(updated))
+}
+
+// @Security ApiKeyAuth
+// @Router /categories/{id} [delete]
+// @Summary Delete a category
+// @Description Delete a category
+// @Tags category
+// @Accept json
+// @Produce json
+// @Param id path int true "ID"
+// @Success 200 {object} models.ResponseOK
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
+func (h *handlerV1) DeleteCategory(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	err = h.storage.Category().Delete(int64(id))
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			c.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, models.ResponseOK{
+		Message: "Successfully deleted",
+	})
+}
+
+func parseCategoryModel(note *repo.Category) models.Category {
+	return models.Category{
+		ID:        note.ID,
+		Title:     note.Title,
+		CreatedAt: note.CreatedAt,
+	}
 }
