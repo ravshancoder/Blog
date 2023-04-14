@@ -32,6 +32,4 @@ type PostStorageI interface {
 	Create(u *Post) (*Post, error)
 	Get(id int64) (*Post, error)
 	GetAll(params *GetAllPostsParams) (*GetAllPostsResult, error)
-	Update(u *Post) (*Post, error)
-	Delete(id int64) error
 }

@@ -43,6 +43,4 @@ type UserStorageI interface {
 	GetByEmail(email string) (*User, error)
 	GetAll(params *GetAllUsersParams) (*GetAllUsersResult, error)
 	UpdatePassword(req *UpdatePassword) error
-	Update(u *User) (*User, error)
-	Delete(id int64) error
 }

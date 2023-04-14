@@ -8,9 +8,9 @@ import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 
-	"github.com/ravshancoder/blog/api"
-	"github.com/ravshancoder/blog/config"
-	"github.com/ravshancoder/blog/storage"
+	"github.com/TemurMannonov/blog/api"
+	"github.com/TemurMannonov/blog/config"
+	"github.com/TemurMannonov/blog/storage"
 )
 
 func main() {

@@ -1,15 +1,16 @@
 package api
 
 import (
-	v1 "github.com/ravshancoder/blog/api/v1"
-	"github.com/ravshancoder/blog/config"
-	"github.com/ravshancoder/blog/storage"
+	v1 "github.com/TemurMannonov/blog/api/v1"
+	"github.com/TemurMannonov/blog/config"
+	"github.com/TemurMannonov/blog/storage"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 
 	swaggerFiles "github.com/swaggo/files"     // swagger embed files
 	ginSwagger "github.com/swaggo/gin-swagger" // gin-swagger middleware
 
-	_ "github.com/ravshancoder/blog/api/docs" // for swagger
+	_ "github.com/TemurMannonov/blog/api/docs" // for swagger
 )
 
 type RouterOptions struct {
@@ -21,7 +22,6 @@ type RouterOptions struct {
 // @title           Swagger for blog api
 // @version         1.0
 // @description     This is a blog service api.
-// @host      localhost:8000
 // @BasePath  /v1
 // @securityDefinitions.apikey ApiKeyAuth
 // @in header
@@ -29,6 +29,12 @@ type RouterOptions struct {
 // @Security ApiKeyAuth
 func New(opt *RouterOptions) *gin.Engine {
 	router := gin.Default()
+
+	corsConfig := cors.DefaultConfig()
+	corsConfig.AllowAllOrigins = true
+	corsConfig.AllowCredentials = true
+	corsConfig.AllowHeaders = append(corsConfig.AllowHeaders, "*")
+	router.Use(cors.New(corsConfig))
 
 	handlerV1 := v1.New(&v1.HandlerV1Options{
 		Cfg:      opt.Cfg,
@@ -40,30 +46,25 @@ func New(opt *RouterOptions) *gin.Engine {
 
 	apiV1 := router.Group("/v1")
 
-	apiV1.GET("/users/:id", handlerV1.AuthMiddleware, handlerV1.GetUser)
+	apiV1.GET("/users/:id", handlerV1.GetUser)
 	apiV1.POST("/users", handlerV1.AuthMiddleware, handlerV1.CreateUser)
 	apiV1.GET("/users", handlerV1.GetAllUsers)
-	apiV1.PUT("/users/:id", handlerV1.UpdateUser)
-	apiV1.DELETE("/users/:id", handlerV1.DeleteUser)
+	apiV1.GET("/users/me", handlerV1.AuthMiddleware, handlerV1.GetUserProfile)
 
 	apiV1.GET("/categories/:id", handlerV1.GetCategory)
 	apiV1.POST("/categories", handlerV1.AuthMiddleware, handlerV1.CreateCategory)
 	apiV1.GET("/categories", handlerV1.GetAllCategories)
-	apiV1.PUT("/categories/:id", handlerV1.UpdateCategory)
-	apiV1.DELETE("/categories/:id", handlerV1.DeleteCategory)
+	apiV1.PUT("/categories/:id", handlerV1.AuthMiddleware, handlerV1.UpdateCategory)
+	apiV1.DELETE("/categories/:id", handlerV1.AuthMiddleware, handlerV1.DeleteCategory)
 
 	apiV1.GET("/posts/:id", handlerV1.GetPost)
 	apiV1.POST("/posts", handlerV1.AuthMiddleware, handlerV1.CreatePost)
 	apiV1.GET("/posts", handlerV1.GetAllPosts)
-	apiV1.PUT("/posts/:id", handlerV1.UpdatePost)
-	apiV1.DELETE("/posts/:id", handlerV1.DeletePost)
 
 	apiV1.POST("/comments", handlerV1.AuthMiddleware, handlerV1.CreateComment)
 	apiV1.GET("/comments", handlerV1.GetAllComments)
-	apiV1.PUT("/comments/:id", handlerV1.UpdateComment)
-	apiV1.DELETE("/comments/:id", handlerV1.DeleteComment)
 
-	apiV1.POST("/likes", handlerV1.AuthMiddleware, handlerV1.CreateLike)
+	apiV1.POST("/likes", handlerV1.AuthMiddleware, handlerV1.CreateOrUpdateLike)
 	apiV1.GET("/likes/user-post", handlerV1.AuthMiddleware, handlerV1.GetLike)
 
 	apiV1.POST("/auth/register", handlerV1.Register)

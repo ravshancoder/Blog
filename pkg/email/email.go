@@ -6,7 +6,7 @@ import (
 	"html/template"
 	"net/smtp"
 
-	"github.com/ravshancoder/blog/config"
+	"github.com/TemurMannonov/blog/config"
 )
 
 type SendEmailRequest struct {

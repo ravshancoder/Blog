@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/TemurMannonov/blog/storage/repo"
 	"github.com/jmoiron/sqlx"
-	"github.com/ravshancoder/blog/storage/repo"
 )
 
 type categoryRepo struct {
@@ -120,24 +120,13 @@ func (cr *categoryRepo) GetAll(params *repo.GetAllCategoriesParams) (*repo.GetAl
 	return &result, nil
 }
 
-func (ur *categoryRepo) Update(category *repo.Category) (*repo.Category, error) {
+func (cr *categoryRepo) Update(category *repo.Category) (*repo.Category, error) {
 	query := `
-		UPDATE categories SET
-			title=$1
-		WHERE id=$2
+		UPDATE categories SET title=$1 WHERE id=$2
 		RETURNING created_at
 	`
 
-	row := ur.db.QueryRow(
-		query,
-		category.Title,
-		category.ID,
-	)
-
-	var result repo.Category
-	err := row.Scan(
-		&result.CreatedAt,
-	)
+	err := cr.db.QueryRow(query, category.Title, category.ID).Scan(&category.CreatedAt)
 	if err != nil {
 		return nil, err
 	}

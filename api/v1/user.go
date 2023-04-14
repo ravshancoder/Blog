@@ -1,14 +1,12 @@
 package v1
 
 import (
-	"database/sql"
-	"errors"
 	"net/http"
 	"strconv"
 
+	"github.com/TemurMannonov/blog/api/models"
+	"github.com/TemurMannonov/blog/storage/repo"
 	"github.com/gin-gonic/gin"
-	"github.com/ravshancoder/blog/api/models"
-	"github.com/ravshancoder/blog/storage/repo"
 )
 
 // @Router /users/{id} [get]
@@ -28,6 +26,31 @@ func (h *handlerV1) GetUser(c *gin.Context) {
 	}
 
 	resp, err := h.storage.User().Get(int64(id))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, parseUserModel(resp))
+}
+
+// @Security ApiKeyAuth
+// @Router /users/me [get]
+// @Summary Get user by token
+// @Description Get user by token
+// @Tags user
+// @Accept json
+// @Produce json
+// @Success 200 {object} models.User
+// @Failure 500 {object} models.ErrorResponse
+func (h *handlerV1) GetUserProfile(c *gin.Context) {
+	payload, err := h.GetAuthPayload(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	resp, err := h.storage.User().Get(payload.UserID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
@@ -76,7 +99,6 @@ func (h *handlerV1) CreateUser(c *gin.Context) {
 	c.JSON(http.StatusCreated, parseUserModel(resp))
 }
 
-// @Security ApiKeyAuth
 // @Router /users [get]
 // @Summary Get all users
 // @Description Get all users
@@ -104,75 +126,6 @@ func (h *handlerV1) GetAllUsers(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, getUsersResponse(result))
-}
-
-// @Router /users/{id} [put]
-// @Summary Update a user
-// @Description Update a user
-// @Tags user
-// @Accept json
-// @Produce json
-// @Param id path int true "ID"
-// @Param user body models.CreateUserRequest true "User"
-// @Success 200 {object} models.User
-// @Failure 500 {object} models.ErrorResponse
-func (h *handlerV1) UpdateUser(c *gin.Context) {
-	var req repo.User
-
-	err := c.ShouldBindJSON(&req)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, errorResponse(err))
-		return
-	}
-
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, errorResponse(err))
-		return
-	}
-
-	req.ID = int64(id)
-
-	updated, err := h.storage.User().Update(&req)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
-	}
-
-	c.JSON(http.StatusCreated, parseUserModel(updated))
-}
-
-// @Security ApiKeyAuth
-// @Router /users/{id} [delete]
-// @Summary Delete a user
-// @Description Delete a user
-// @Tags user
-// @Accept json
-// @Produce json
-// @Param id path int true "ID"
-// @Success 200 {object} models.ResponseOK
-// @Failure 400 {object} models.ErrorResponse
-// @Failure 500 {object} models.ErrorResponse
-func (h *handlerV1) DeleteUser(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, errorResponse(err))
-		return
-	}
-
-	err = h.storage.User().Delete(int64(id))
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			c.JSON(http.StatusNotFound, errorResponse(err))
-			return
-		}
-		c.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
-	}
-
-	c.JSON(http.StatusOK, models.ResponseOK{
-		Message: "Successfully deleted",
-	})
 }
 
 func getUsersResponse(data *repo.GetAllUsersResult) *models.GetAllUsersResponse {

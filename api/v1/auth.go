@@ -8,19 +8,11 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/TemurMannonov/blog/api/models"
+	emailPkg "github.com/TemurMannonov/blog/pkg/email"
+	"github.com/TemurMannonov/blog/pkg/utils"
+	"github.com/TemurMannonov/blog/storage/repo"
 	"github.com/gin-gonic/gin"
-	"github.com/ravshancoder/blog/api/models"
-	emailPkg "github.com/ravshancoder/blog/pkg/email"
-	"github.com/ravshancoder/blog/pkg/utils"
-	"github.com/ravshancoder/blog/storage/repo"
-)
-
-var (
-	ErrWrongEmailOrPass = errors.New("wrong email or password")
-	ErrEmailExists      = errors.New("email already exists")
-	ErrUserNotVerified  = errors.New("user not verified")
-	ErrIncorrectCode    = errors.New("incorrect verification code")
-	ErrCodeExpired      = errors.New("verification code has been expired")
 )
 
 const (
@@ -171,6 +163,7 @@ func (h *handlerV1) Verify(c *gin.Context) {
 	token, _, err := utils.CreateToken(h.cfg, &utils.TokenParams{
 		UserID:   result.ID,
 		Email:    result.Email,
+		UserType: result.Type,
 		Duration: time.Hour * 24,
 	})
 	if err != nil {
@@ -229,6 +222,7 @@ func (h *handlerV1) Login(c *gin.Context) {
 	token, _, err := utils.CreateToken(h.cfg, &utils.TokenParams{
 		UserID:   result.ID,
 		Email:    result.Email,
+		UserType: result.Type,
 		Duration: time.Hour * 24,
 	})
 	if err != nil {

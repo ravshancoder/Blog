@@ -4,7 +4,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/ravshancoder/blog/pkg/utils"
+	"github.com/TemurMannonov/blog/pkg/utils"
 	"github.com/gin-gonic/gin"
 )
 

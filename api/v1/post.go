@@ -1,14 +1,12 @@
 package v1
 
 import (
-	"database/sql"
-	"errors"
 	"net/http"
 	"strconv"
 
+	"github.com/TemurMannonov/blog/api/models"
+	"github.com/TemurMannonov/blog/storage/repo"
 	"github.com/gin-gonic/gin"
-	"github.com/ravshancoder/blog/api/models"
-	"github.com/ravshancoder/blog/storage/repo"
 )
 
 // @Router /posts/{id} [get]
@@ -123,75 +121,6 @@ func (h *handlerV1) GetAllPosts(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, getPostsResponse(result))
-}
-
-// @Router /posts/{id} [put]
-// @Summary Update a post
-// @Description Update a post
-// @Tags post
-// @Accept json
-// @Produce json
-// @Param id path int true "ID"
-// @Param post body models.CreatePostRequest true "Post"
-// @Success 200 {object} models.Post
-// @Failure 500 {object} models.ErrorResponse
-func (h *handlerV1) UpdatePost(c *gin.Context) {
-	var req repo.Post
-
-	err := c.ShouldBindJSON(&req)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, errorResponse(err))
-		return
-	}
-
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, errorResponse(err))
-		return
-	}
-
-	req.ID = int64(id)
-
-	updated, err := h.storage.Post().Update(&req)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
-	}
-
-	c.JSON(http.StatusCreated, parsePostModel(updated))
-}
-
-// @Security ApiKeyAuth
-// @Router /posts/{id} [delete]
-// @Summary Delete a post
-// @Description Delete a post
-// @Tags post
-// @Accept json
-// @Produce json
-// @Param id path int true "ID"
-// @Success 200 {object} models.ResponseOK
-// @Failure 400 {object} models.ErrorResponse
-// @Failure 500 {object} models.ErrorResponse
-func (h *handlerV1) DeletePost(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, errorResponse(err))
-		return
-	}
-
-	err = h.storage.Post().Delete(int64(id))
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			c.JSON(http.StatusNotFound, errorResponse(err))
-			return
-		}
-		c.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
-	}
-
-	c.JSON(http.StatusOK, models.ResponseOK{
-		Message: "Successfully deleted",
-	})
 }
 
 func validateGetAllPostsParams(c *gin.Context) (*models.GetAllPostsParams, error) {

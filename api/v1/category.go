@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/TemurMannonov/blog/api/models"
+	"github.com/TemurMannonov/blog/storage/repo"
 	"github.com/gin-gonic/gin"
-	"github.com/ravshancoder/blog/api/models"
-	"github.com/ravshancoder/blog/storage/repo"
 )
 
 // @Router /categories/{id} [get]
@@ -29,6 +29,11 @@ func (h *handlerV1) GetCategory(c *gin.Context) {
 
 	resp, err := h.storage.Category().Get(int64(id))
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			c.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+
 		c.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -55,7 +60,18 @@ func (h *handlerV1) CreateCategory(c *gin.Context) {
 		req models.CreateCategoryRequest
 	)
 
-	err := c.ShouldBindJSON(&req)
+	payload, err := h.GetAuthPayload(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	if payload.UserType != repo.UserTypeSuperadmin {
+		c.JSON(http.StatusForbidden, errorResponse(ErrForbidden))
+		return
+	}
+
+	err = c.ShouldBindJSON(&req)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, errorResponse(err))
 		return
@@ -120,7 +136,8 @@ func getCategoriesResponse(data *repo.GetAllCategoriesResult) *models.GetAllCate
 	return &response
 }
 
-// @Router /categorys/{id} [put]
+// @Security ApiKeyAuth
+// @Router /categories/{id} [put]
 // @Summary Update a category
 // @Description Update a category
 // @Tags category
@@ -129,11 +146,25 @@ func getCategoriesResponse(data *repo.GetAllCategoriesResult) *models.GetAllCate
 // @Param id path int true "ID"
 // @Param category body models.CreateCategoryRequest true "Category"
 // @Success 200 {object} models.Category
+// @Failure 400 {object} models.ErrorResponse
 // @Failure 500 {object} models.ErrorResponse
 func (h *handlerV1) UpdateCategory(c *gin.Context) {
-	var req repo.Category
+	var (
+		req models.CreateCategoryRequest
+	)
 
-	err := c.ShouldBindJSON(&req)
+	payload, err := h.GetAuthPayload(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	if payload.UserType != repo.UserTypeSuperadmin {
+		c.JSON(http.StatusForbidden, errorResponse(ErrForbidden))
+		return
+	}
+
+	err = c.ShouldBindJSON(&req)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, errorResponse(err))
 		return
@@ -145,15 +176,24 @@ func (h *handlerV1) UpdateCategory(c *gin.Context) {
 		return
 	}
 
-	req.ID = int64(id)
-
-	updated, err := h.storage.Category().Update(&req)
+	resp, err := h.storage.Category().Update(&repo.Category{
+		ID:    int64(id),
+		Title: req.Title,
+	})
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			c.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
 		c.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
-	c.JSON(http.StatusCreated, parseCategoryModel(updated))
+	c.JSON(http.StatusOK, models.Category{
+		ID:        resp.ID,
+		Title:     resp.Title,
+		CreatedAt: resp.CreatedAt,
+	})
 }
 
 // @Security ApiKeyAuth
@@ -168,6 +208,17 @@ func (h *handlerV1) UpdateCategory(c *gin.Context) {
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 500 {object} models.ErrorResponse
 func (h *handlerV1) DeleteCategory(c *gin.Context) {
+	payload, err := h.GetAuthPayload(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	if payload.UserType != repo.UserTypeSuperadmin {
+		c.JSON(http.StatusForbidden, errorResponse(ErrForbidden))
+		return
+	}
+
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, errorResponse(err))
@@ -187,12 +238,4 @@ func (h *handlerV1) DeleteCategory(c *gin.Context) {
 	c.JSON(http.StatusOK, models.ResponseOK{
 		Message: "Successfully deleted",
 	})
-}
-
-func parseCategoryModel(note *repo.Category) models.Category {
-	return models.Category{
-		ID:        note.ID,
-		Title:     note.Title,
-		CreatedAt: note.CreatedAt,
-	}
 }

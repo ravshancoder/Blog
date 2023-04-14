@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/ravshancoder/blog/config"
+	"github.com/TemurMannonov/blog/config"
 	"github.com/golang-jwt/jwt"
 )
 
@@ -12,6 +12,7 @@ type TokenParams struct {
 	UserID   int64
 	Username string
 	Email    string
+	UserType string
 	Duration time.Duration
 }
 
